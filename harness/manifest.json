@@ -1,0 +1,40 @@
+{
+  "harness_version": "1.1.0",
+  "name": "roa-agentic-harness",
+  "description": "Immutable definition of the AgentFlow orchestration. Everything under harness/ is hash-locked at startup and can never be written by any agent or stage. Mutable data lives under runtime/.",
+  "execution": {
+    "mode": "sequential",
+    "agent_to_agent_communication": false,
+    "failure_handling": "human_in_the_loop",
+    "autonomous_replan": false
+  },
+  "models": {
+    "understanding": "gpt-oss-20b",
+    "planner": "gpt-oss-20b",
+    "validator_judge": "gpt-oss-20b",
+    "reporter": "gpt-oss-20b"
+  },
+  "llm": {
+    "temperature": 0.1,
+    "timeout_s": 60,
+    "max_repair_attempts": 1,
+    "latency_note": "Output decoding dominates latency on a local LLM gateway. Low reasoning effort plus per-role token caps keeps every call bounded; the default effort can spend many reasoning tokens.",
+    "reasoning_effort": { "understanding": "low", "planner": "low", "validator_judge": "low", "reporter": "low" },
+    "max_tokens": { "understanding": 1024, "planner": 1024, "validator_judge": 1024, "reporter": 1536 }
+  },
+  "components": {
+    "agent_registry": "agents/agents.json",
+    "tool_registry": "tools/tools.json",
+    "flow_registry": "flows/flows.json",
+    "guardrails": "guardrails/guardrails.json",
+    "planner_schema": "planner/planner.schema.json",
+    "planner_prompt": "planner/PLANNER.md",
+    "understanding_schema": "understanding/understanding.schema.json",
+    "understanding_prompt": "understanding/UNDERSTANDING.md",
+    "fallback": "fallback/fallback.json",
+    "validation_policy": "validation/validation.json",
+    "judge_prompt": "validation/JUDGE.md",
+    "reporting_policy": "reporting/reporting.json",
+    "report_prompt": "reporting/REPORT.md"
+  }
+}

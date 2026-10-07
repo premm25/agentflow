@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlannerOutput",
+  "type": "object",
+  "properties": {
+    "case_type": {
+      "type": "string",
+      "enum": ["pricing", "overbooking", "lrv", "forecast", "multi"],
+      "description": "Flow to use. Must be a key of flows/flows.json."
+    },
+    "agent_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Agents to run, chosen only from the registry menu."
+    },
+    "reasoning": { "type": "string", "description": "One or two sentences on why these agents." }
+  },
+  "required": ["case_type", "agent_ids", "reasoning"],
+  "additionalProperties": false
+}

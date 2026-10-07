@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CaseUnderstanding",
+  "type": "object",
+  "properties": {
+    "case_type_hint": { "type": ["string", "null"] },
+    "time_horizon": { "type": "string", "enum": ["NEAR_TERM", "LONG_TERM", "UNKNOWN"] },
+    "property_name": { "type": ["string", "null"] },
+    "entities": { "type": "object" },
+    "summary": { "type": "string" }
+  },
+  "required": ["case_type_hint", "time_horizon", "property_name", "summary"],
+  "additionalProperties": false
+}

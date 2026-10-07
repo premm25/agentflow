@@ -1,0 +1,37 @@
+{
+  "registry_version": "1.0.0",
+  "agents": [
+    {
+      "agent_id": "pricing_agent",
+      "display_name": "Pricing Agent",
+      "spec": "agents/pricing_agent/AGENT.md",
+      "entrypoint": "roa.agents.pricing:run",
+      "version": "1.0",
+      "enabled": true
+    },
+    {
+      "agent_id": "overbooking_agent",
+      "display_name": "Overbooking Agent",
+      "spec": "agents/overbooking_agent/AGENT.md",
+      "entrypoint": "roa.agents.overbooking:run",
+      "version": "1.0",
+      "enabled": true
+    },
+    {
+      "agent_id": "lrv_agent",
+      "display_name": "LRV Agent",
+      "spec": "agents/lrv_agent/AGENT.md",
+      "entrypoint": "roa.agents.lrv:run",
+      "version": "1.0",
+      "enabled": true
+    },
+    {
+      "agent_id": "forecast_agent",
+      "display_name": "Forecast Agent",
+      "spec": "agents/forecast_agent/AGENT.md",
+      "entrypoint": "roa.agents.forecast:run",
+      "version": "1.0",
+      "enabled": true
+    }
+  ]
+}

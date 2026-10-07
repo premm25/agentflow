@@ -1,0 +1,6 @@
+{
+  "reporting_version": "1.0.0",
+  "outputs": ["report.json", "report.md"],
+  "sections": ["case", "understanding", "plan", "guardrail_events", "agents", "validation", "human_decisions", "response_draft", "caveats", "observability"],
+  "draft": { "max_words": 220, "use_only_verified_evidence": true }
+}

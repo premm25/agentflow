@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentFlow</title>
+<style>
+  :root { color-scheme: light dark;
+    --bg:#f4f4f2; --panel:#fcfcfb; --line:#dcdbd5; --ink:#0b0b0b; --ink2:#52514e; --mut:#797870;
+    --blue:#2a78d6; --good:#1a7f4b; --bad:#c93a39; --warn:#a86b00; --hil:#eda100; --soft:#f0efeb; }
+  @media (prefers-color-scheme: dark) { :root {
+    --bg:#121211; --panel:#1a1a19; --line:#33322f; --ink:#fff; --ink2:#c3c2b7; --mut:#8c8b82;
+    --blue:#3987e5; --good:#3fb97f; --bad:#e66767; --warn:#e0a13a; --hil:#c98500; --soft:#242422; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:13px/1.45 -apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { display:flex; align-items:center; gap:14px; padding:12px 20px; background:var(--panel); border-bottom:1px solid var(--line); }
+  header h1 { font-size:16px; margin:0; } header .grow { flex:1; }
+  a.btn, button { background:var(--blue); color:#fff; border:0; border-radius:6px; padding:7px 13px; font-size:12.5px; cursor:pointer; text-decoration:none; display:inline-block; }
+  button.sec, a.btn.sec { background:var(--soft); color:var(--ink); border:1px solid var(--line); }
+  button.danger { background:var(--bad); } button:disabled { opacity:.5; cursor:default; }
+  .layout { display:flex; height:calc(100vh - 51px); }
+  .left { width:360px; border-right:1px solid var(--line); overflow:auto; padding:14px; }
+  .right { flex:1; overflow:auto; padding:16px 24px 40px; }
+  textarea, input[type=text] { width:100%; background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:8px; font:inherit; margin-bottom:8px; }
+  h3 { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); margin:18px 0 8px; }
+  h2 { font-size:15px; margin:0 0 6px; }
+  .case { padding:9px 10px; border-radius:8px; margin-bottom:7px; background:var(--panel); border:1px solid var(--line); cursor:pointer; }
+  .case.sel { border-color:var(--blue); } .case .id { font-size:11px; color:var(--mut); } .case .d { margin-top:2px; }
+  .badge { display:inline-block; padding:1px 8px; border-radius:10px; font-size:10.5px; font-weight:600; border:1px solid currentColor; }
+  .s-COMPLETED,.s-DONE,.s-PASS { color:var(--good); } .s-FAILED,.s-ABORTED,.s-FAIL,.s-NOT_SUPPORTED { color:var(--bad); }
+  .s-WAITING_FOR_HUMAN { color:var(--hil); } .s-WARN,.s-SKIPPED { color:var(--warn); }
+  .s-PLANNING,.s-EXECUTING,.s-VALIDATING,.s-REPORTING,.s-RUNNING,.s-RECEIVED { color:var(--blue); }
+  .flow { display:flex; align-items:stretch; gap:0; overflow-x:auto; padding:10px 0 14px; }
+  .node { min-width:118px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--panel); font-size:11.5px; font-weight:600; color:var(--mut); }
+  .node small { display:block; font-weight:400; margin-top:3px; }
+  .node.active { border-color:var(--blue); color:var(--ink); box-shadow:0 0 0 2px color-mix(in srgb,var(--blue) 25%,transparent); }
+  .node.done { border-color:var(--good); color:var(--ink); } .node.fail { border-color:var(--bad); color:var(--ink); }
+  .node.hil { border-color:var(--hil); color:var(--ink); }
+  .node .sub { margin-top:6px; display:flex; flex-direction:column; gap:3px; }
+  .node .chip { font-size:10.5px; font-weight:500; padding:2px 6px; border-radius:5px; background:var(--soft); }
+  .arrow { width:22px; align-self:center; height:2px; background:var(--line); flex:none; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:12px 14px; margin-bottom:12px; }
+  .hilbox { border:2px solid var(--hil); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+  .ev { padding:5px 0; border-top:1px solid var(--line); font-size:12.5px; } .ev .src { color:var(--mut); font-size:11px; }
+  .chk { font-size:12px; padding:2px 0; } .chk.ok { color:var(--good); } .chk.no { color:var(--bad); font-weight:600; }
+  pre { background:var(--soft); border:1px solid var(--line); border-radius:6px; padding:10px; font-size:11.5px; white-space:pre-wrap; word-break:break-word; max-height:340px; overflow:auto; }
+  .draft { white-space:pre-wrap; line-height:1.5; }
+  .mut { color:var(--mut); } .files a { cursor:pointer; color:var(--blue); display:block; font-size:12px; }
+  .seg { display:inline-flex; gap:0; margin-left:10px; vertical-align:middle; }
+  .seg button { border-radius:0; border:1px solid var(--line); padding:5px 12px; }
+  .seg button:first-child { border-radius:6px 0 0 6px; } .seg button:last-child { border-radius:0 6px 6px 0; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:12px; }
+
+  /* execution timeline + flow registry */
+  .chip { display:inline-block; font-size:10.5px; font-weight:500; padding:2px 7px; border-radius:5px; background:var(--soft); border:1px solid var(--line); margin:1px 2px 1px 0; }
+  .chip.sel, .chip.flowchip { border-color:var(--blue); color:var(--blue); font-weight:600; } .chip.retry { border-color:var(--warn); color:var(--warn); }
+  .s-SELECTED { color:var(--good); } .s-UNRESOLVED,.s-OVERRIDDEN { color:var(--warn); } .s-BLOCKED { color:var(--bad); }
+  .s-PENDING,.s-NOT_REACHED,.s-NOT_REQUIRED,.s-NOT_RECORDED { color:var(--mut); } .s-IN_PROGRESS { color:var(--blue); }
+  .tlhead { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:10px 0; }
+  .now { display:flex; align-items:center; gap:4px; padding:9px 12px; border:1px solid var(--blue); border-radius:9px; background:color-mix(in srgb,var(--blue) 8%,var(--panel)); margin-bottom:12px; }
+  .pulse { width:9px; height:9px; border-radius:50%; background:var(--blue); margin-right:6px; animation:pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(1.4); } }
+  @media (prefers-reduced-motion: reduce) { .pulse { animation:none; } }
+  .stage { display:grid; grid-template-columns:26px minmax(0,1fr); gap:0 10px; }
+  .rail { position:relative; } .rail::before { content:''; position:absolute; left:11px; top:14px; bottom:-14px; width:2px; background:var(--line); }
+  .stage:last-of-type .rail::before { display:none; }
+  .dot { position:absolute; left:5px; top:6px; width:14px; height:14px; border-radius:50%; background:var(--line); border:2px solid var(--panel); box-shadow:0 0 0 1px var(--line); }
+  .st-COMPLETED .dot,.st-SELECTED .dot,.st-DONE .dot { background:var(--good); } .st-FAILED .dot,.st-ABORTED .dot,.st-BLOCKED .dot { background:var(--bad); }
+  .st-RUNNING .dot,.st-IN_PROGRESS .dot { background:var(--blue); } .st-WAITING_FOR_HUMAN .dot,.st-UNRESOLVED .dot,.st-OVERRIDDEN .dot { background:var(--hil); }
+  .stage.now-stage .dot { box-shadow:0 0 0 4px color-mix(in srgb,var(--blue) 30%,transparent); }
+  .scard { background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:9px 12px; margin-bottom:12px; min-width:0; }
+  .stage.now-stage .scard { border-color:var(--blue); }
+  .sh { display:flex; gap:8px; align-items:center; flex-wrap:wrap; } .sn { font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+  .dur { margin-left:auto; color:var(--mut); font-variant-numeric:tabular-nums; font-size:11.5px; } .ss { color:var(--ink2); margin-top:2px; overflow-wrap:anywhere; }
+  .scard details { margin-top:6px; } .scard summary { cursor:pointer; color:var(--blue); font-size:12px; }
+  table.kv { border-collapse:collapse; width:100%; margin:6px 0; } table.kv td,table.kv th { text-align:left; padding:3px 8px 3px 0; border-top:1px solid var(--line); vertical-align:top; font-size:12px; overflow-wrap:anywhere; }
+  table.kv th { font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--mut); } table.kv td.k { color:var(--mut); width:150px; white-space:nowrap; }
+  .mono { font-family:ui-monospace,Consolas,monospace; font-size:11px; } .wagent { padding:6px 0; border-top:1px solid var(--line); } .attempt { margin:4px 0 4px 10px; }
+  .bar { display:flex; align-items:center; gap:8px; font-size:11.5px; margin:2px 0; } .bl { width:140px; color:var(--mut); } .bt { flex:1; height:7px; background:var(--soft); border-radius:4px; overflow:hidden; }
+  .bt i { display:block; height:100%; background:var(--blue); } .bv { width:70px; text-align:right; font-variant-numeric:tabular-nums; }
+  a.lnk { color:var(--blue); cursor:pointer; margin-right:8px; font-size:12px; } .evlist { margin-top:4px; } .evlist summary { cursor:pointer; color:var(--blue); }
+</style>
+</head>
+<body>
+<header>
+  <h1>AgentFlow</h1>
+  <span class="mut" id="harness"></span>
+  <span class="grow"></span>
+  <button class="sec" onclick="showFlows()">Flows</button>
+  <button class="sec" onclick="showHarness()">Harness &amp; agents</button>
+  <button class="sec" onclick="showDashboard()">Dashboard</button>
+  <a class="btn sec" id="dashLink" href="#" target="_blank" title="Open the dashboard in its own tab">Dashboard ↗</a>
+</header>
+<div class="layout">
+  <div class="left">
+    <h3 style="margin-top:0">New case</h3>
+    <textarea id="desc" rows="4" placeholder="Case description…"></textarea>
+    <input type="text" id="prop" placeholder="Property name (optional)">
+    <button onclick="createCase()">Submit case</button>
+    <h3>Cases</h3><div id="list"></div>
+  </div>
+  <div class="right" id="detail"><span class="mut">Select a case, or submit a new one.</span></div>
+</div>
+<script>
+let embKey = '', sub = 'timeline', lastSig = '', tl = null, tlSig = '', openKeys = new Set(['flow']), flowsCache = null, sel = null, cases = [], dash = 'http://localhost:8200', view = 'case', fileOpen = null, fileText = '';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const badge = s => `<span class="badge s-${s}">${({REPORTING: 'RESPONDING'})[s] || String(s).replace(/_/g,' ')}</span>`;
+
+/* <pure> Rendering of the execution timeline and the flow registry. No DOM access: each function takes API JSON and returns HTML,
+   so the same code is exercised against real /cases/{id}/timeline and /flows data in tests. */
+const stageName = s => ({report: 'response', reporting: 'response'})[s] || s;  // display names; the identifiers stay as they are
+const fmtMs = ms => ms == null ? '–' : ms < 1000 ? `${ms} ms` : ms < 60000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.floor(ms / 60000)} m ${Math.round((ms % 60000) / 1000)} s`;
+const kvRows = rows => `<table class="kv">${rows.filter(r => r[1] !== null && r[1] !== undefined && r[1] !== '').map(r => `<tr><td class="k">${esc(r[0])}</td><td>${r[1]}</td></tr>`).join('')}</table>`;
+const chips = (items, sel) => items.map(x => `<span class="chip ${sel && sel(x) ? 'sel' : ''}">${esc(x)}</span>`).join(' ');
+const chain = items => items.map(x => `<span class="chip">${esc(x)}</span>`).join('<span class="mut"> → </span>');
+const llmTable = calls => calls && calls.length
+  ? `<table class="kv"><tr><th>LLM role</th><th>Model</th><th>Latency</th><th>Tokens (in / out)</th></tr>${calls.map(c => `<tr><td>${esc(c.role)}</td><td>${esc(c.model)}</td><td>${fmtMs(c.latency_ms)}</td><td>${c.prompt_tokens} / ${c.completion_tokens}</td></tr>`).join('')}</table>`
+  : '<div class="mut">No LLM call recorded for this stage.</div>';
+/* When to redraw the timeline view: whenever the timeline OR the case state it is drawn beside (human-review panel, draft) changes. The case
+   state must be part of it: on first load the timeline can arrive before the case list, and an unchanged timeline must not skip that redraw. */
+const timelineSig = (t, cs) => JSON.stringify([t.status, t.stages.map(s => [s.key, s.status, s.summary]), t.events.length, t.current,
+  t.live ? Math.floor((t.total_ms || 0) / 1000) : 0, cs ? [cs.stage, cs.pending_hil ? [cs.pending_hil.hil_id, cs.pending_hil.resuming] : null, !!cs.response_draft] : null]);
+const checkLine = (ok, text) => `<div class="chk ${ok ? 'ok' : 'no'}">${ok ? '✓' : '✗'} ${esc(text)}</div>`;
+
+function stageDetail(s, tl) {
+  const d = s.data || {};
+  switch (s.key) {
+    case 'trigger':
+      return kvRows([['Case', esc(d.case_id)], ['Source', esc(d.source)], ['Property', esc(d.property_name || '—')], ['Received', esc(d.received_at)], ['Input', `<div class="draft">${esc(d.description)}</div>`]]);
+    case 'intake':
+      return (d.events || []).map(e => checkLine(e.passed, `${e.point}/${e.rule}: ${e.detail}`)).join('') || '<div class="mut">Not run yet.</div>';
+    case 'intent':
+      return kvRows([['Intent', `<b>${esc(d.intent || 'none resolved')}</b>`], ['Resolved by', esc(d.resolved_by || '—')], ['Time horizon', esc(d.time_horizon)],
+        ['Property', esc(d.property_name || '—')], ['Summary', esc(d.summary)]]) + llmTable(d.llm_calls);
+    case 'flow': {
+      const sel = d.selection, fl = d.flow;
+      if (!sel) return d.plan_case_type ? `<div class="mut">This case was run before flow selection was recorded. Its plan used flow <b>${esc(d.plan_case_type)}</b>.</div>` : '<div class="mut">Waiting for the intent.</div>';
+      const kws = Object.entries((sel.matched || {}).keywords || {}).map(([a, ks]) => `${esc(a)}: ${ks.map(esc).join(', ')}`).join(' · ');
+      return kvRows([['Status', badge(sel.status)], ['Flow', sel.flow_id ? `<b>${esc(sel.flow_id)}</b> · ${esc(sel.name)} v${esc(sel.version)}` : '—'],
+        ['Intent', esc(sel.intent || 'none')], ['Selected by', esc((sel.source || '').replace(/_/g, ' '))], ['Why', esc(sel.reason)],
+        ['Keywords matched', kws || '<span class="mut">none</span>'], ['Participating agents', sel.participating_agents.length ? chain(sel.participating_agents) : ''],
+        ['Max agents', fl ? fl.max_agents : null]])
+        + `<div class="mut" style="margin-top:6px">Registered flows the registry chose from (selected is highlighted):</div><div>${(d.considered || []).map(c => `<span class="chip ${c.selected ? 'sel' : ''}">${esc(c.flow_id)}${c.intents.length ? ' ← ' + c.intents.map(esc).join(', ') : ' (multi-topic)'}</span>`).join(' ')}</div>`;
+    }
+    case 'plan':
+      return kvRows([['Flow', d.flow_id ? `<b>${esc(d.flow_id)}</b>` : ''], ['Planned by', esc(d.source || '—')], ['Reasoning', esc(d.reasoning || d.reason || '')],
+        ['Agents (in run order)', d.agents ? chain(d.agents.map(a => a.agent_id)) : ''], ['Execution', esc(d.execution || '')]])
+        + (d.guardrails || []).map(g => checkLine(g.passed, `plan/${g.rule}: ${g.detail}`)).join('') + llmTable(d.llm_calls);
+    case 'orchestration':
+      return `<div class="mut">Mode: ${esc(d.mode)} · flow ${esc(d.flow_id || '—')}${d.current_agent ? ' · running ' + esc(d.current_agent) : ''}</div>`
+        + `<table class="kv"><tr><th>#</th><th>Task / agent</th><th>Status</th><th>Attempts</th><th>Duration</th></tr>${(d.tasks || []).map(t => `<tr><td>${t.order}</td><td>${esc(t.agent_id)}</td><td>${badge(t.status)}</td><td>${t.attempts}</td><td>${fmtMs(t.duration_ms)}</td></tr>`).join('')}</table>`;
+    case 'workers':
+      return (d.agents || []).map(a => `<div class="wagent"><b>${esc(a.agent_id)}</b>${a.attempts.map(at => `
+        <div class="attempt"><div>${at.retry ? '<span class="chip retry">↻ retry</span> ' : ''}attempt ${at.attempt} ${badge(at.status)} <span class="mut">${fmtMs(at.duration_ms)}${at.confidence != null ? ' · confidence ' + at.confidence : ''}</span></div>
+        ${at.reason ? `<div class="chk no">${esc(at.reason)}</div>` : ''}
+        ${at.tool_calls.length ? `<table class="kv"><tr><th>Tool</th><th>Status</th><th>Duration</th><th>Result</th></tr>${at.tool_calls.map(c => `<tr><td>${esc(c.tool)}</td><td>${badge(c.status)}</td><td>${fmtMs(c.duration_ms)}</td><td class="mono">${esc(c.error || JSON.stringify(c.result))}</td></tr>`).join('')}</table>` : '<div class="mut">No tool calls.</div>'}
+        ${at.evidence.map(e => `<div class="ev">${esc(e.claim)}<div class="src">via ${esc(e.tool)} · confidence ${e.confidence}</div></div>`).join('')}</div>`).join('') || '<div class="mut">Not run yet.</div>'}</div>`).join('') || '<div class="mut">No plan yet.</div>';
+    case 'validation': {
+      const vs = (d.verdicts || []).map(v => `<div class="wagent"><b>${esc(v.agent_id)}</b> attempt ${v.attempt} ${badge(v.status)}
+        ${v.judge ? `<span class="mut">judge ${esc(v.judge.verdict)} (${esc(v.judge.model)})</span>` : v.judge_unavailable ? '<span class="mut">judge unavailable: deterministic checks only</span>' : '<span class="mut">judge not run</span>'}
+        ${v.checks.map(c => checkLine(c.passed, `${c.name}: ${c.detail}`)).join('')}${v.judge ? `<div class="mut">Judge: ${esc(v.judge.rationale)}</div>` : ''}</div>`).join('');
+      return vs ? vs + ((d.waived_agents || []).length ? `<div class="mut">Waived by a human: ${d.waived_agents.map(esc).join(', ')}</div>` : '') + llmTable(d.llm_calls)
+        : '<div class="mut">Not validated yet.</div>';
+    }
+    case 'human':
+      return (d.items || []).map(h => `<div class="wagent"><b>${esc(stageName(h.stage))}</b> ${badge(h.status === 'DECIDED' ? 'COMPLETED' : 'WAITING_FOR_HUMAN')} <span class="mut">${esc(h.type.replace('_', ' '))} · requested ${esc(h.requested_at)}</span>
+        <div>${esc(h.reason)}</div><div class="mut">Options: ${h.options.map(esc).join(', ')}</div>
+        ${h.decision ? `<div>Decision: <b>${esc(h.decision)}</b>${h.comment ? ' · ' + esc(h.comment) : ''} <span class="mut">waited ${fmtMs(h.waited_ms)}</span></div>` : '<div class="mut">Awaiting a decision.</div>'}</div>`).join('')
+        || '<div class="mut">No human intervention was needed or requested.</div>';
+    case 'report':
+      return kvRows([['Draft', d.has_draft ? 'generated' : 'not yet'], ['Draft source', esc(d.draft_source || '—')], ['Revisions', d.revisions], ['Report files', (d.report_files || []).map(esc).join(', ')],
+        ['Response draft', d.draft ? `<div class="draft">${esc(d.draft)}</div>` : '']]) + llmTable(d.llm_calls);
+    case 'outcome': {
+      const sd = tl.stage_durations_ms || {}, max = Math.max(1, ...Object.values(sd).map(v => v || 0));
+      return kvRows([['Final state', badge(d.final_stage)], ['Reason', esc(d.reason || '')], ['Total time', fmtMs(d.total_ms)], ['Retries', d.retries], ['Human interventions', d.human_interventions],
+        ['LLM calls', `${d.llm_calls} (${d.tokens} tokens)`]])
+        + `<div class="mut" style="margin-top:6px">Time spent per stage</div>` + Object.entries(sd).map(([k, v]) => `<div class="bar"><span class="bl">${esc(stageName(k).replace(/_/g, ' '))}</span><span class="bt"><i style="width:${Math.round(100 * (v || 0) / max)}%"></i></span><span class="bv">${fmtMs(v)}</span></div>`).join('');
+    }
+    default: return '';
+  }
+}
+
+function timelineHtml(tl, open) {
+  open = open || new Set();
+  const flow = tl.flow && tl.flow.flow_id ? `<span class="chip flowchip">flow: ${esc(tl.flow.flow_id)}</span>` : `<span class="chip">flow: ${tl.stages.some(s => s.key === 'flow' && s.status === 'NOT_RECORDED') ? 'not recorded' : 'not selected'}</span>`;
+  const head = `<div class="tlhead">${flow} <span class="chip">intent: ${esc(tl.intent || 'none')}</span> <span class="mut">total ${fmtMs(tl.total_ms)}</span></div>`
+    + (tl.live ? `<div class="now"><span class="pulse"></span><b>Now:</b>&nbsp;${esc(tl.current.label)}</div>` : '');
+  const cards = tl.stages.map(s => {
+    const isNow = tl.live && tl.current.stage === s.key;
+    return `<div class="stage st-${esc(s.status)} ${isNow ? 'now-stage' : ''}" data-stage="${esc(s.key)}"><div class="rail"><span class="dot"></span></div>
+      <div class="scard"><div class="sh"><span class="sn">${esc(s.title)}</span> ${badge(s.status)} <span class="dur">${fmtMs(s.duration_ms)}</span></div>
+      <div class="ss">${esc(s.summary)}</div>
+      <details data-k="${esc(s.key)}" ${open.has(s.key) ? 'open' : ''}><summary>Details</summary>${stageDetail(s, tl)}</details></div></div>`;
+  }).join('');
+  const t0 = Date.parse(tl.started_at);
+  const evs = `<details data-k="_events" ${open.has('_events') ? 'open' : ''} class="evlist"><summary>Lifecycle events (${tl.events.length})</summary>
+    <table class="kv"><tr><th>+time</th><th>Event</th><th>Stage</th><th>Agent / tool</th><th>Status</th></tr>${tl.events.map(e => `<tr><td class="mono">+${fmtMs(Date.parse(e.at) - t0)}</td><td>${esc(e.title)}</td><td>${esc(stageName(e.stage))}</td><td>${esc([e.agent_id, e.tool].filter(Boolean).join(' / '))}</td><td>${e.status ? badge(e.status) : ''}</td></tr>`).join('')}</table></details>`;
+  return `<div class="tl">${head}${cards}${evs}<div class="mut" style="margin-top:8px">${tl.notes.map(esc).join(' ')}</div></div>`;
+}
+
+function flowsHtml(flows, cases) {
+  const used = {};
+  (cases || []).forEach(cs => { const f = cs.flow_selection && cs.flow_selection.flow_id; if (f) (used[f] = used[f] || []).push(cs.case.case_id); });
+  return `<div class="grid">${flows.map(f => `<div class="panel"><h2>${esc(f.name)} <span class="mut">${esc(f.flow_id)} · v${esc(f.version)}</span> <span class="badge s-${f.enabled ? 'COMPLETED' : 'SKIPPED'}">${f.enabled ? 'ENABLED' : 'DISABLED'}</span></h2>
+    <div>${esc(f.description)}</div>
+    <div class="mut" style="margin-top:6px">${f.multi_topic ? 'Selected when the case text raises topics that no single flow covers.' : 'Selected when the resolved intent is: ' + f.intents.map(esc).join(', ')}</div>
+    <div style="margin-top:6px">Agents, in run order: ${chain(f.task_order)}</div><div class="mut">Allowed: ${f.allowed_agents.map(esc).join(', ')} · max ${f.max_agents} agent(s)</div>
+    <h3>Cases that followed this flow (${(used[f.flow_id] || []).length})</h3>${(used[f.flow_id] || []).map(id => `<a class="lnk" onclick="pick('${esc(id)}')">${esc(id)}</a>`).join(' ') || '<span class="mut">none yet</span>'}</div>`).join('')}</div>`;
+}
+/* </pure> */
+
+
+async function api(path, opts) { const r = await fetch(path, opts); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText); return r.json(); }
+async function createCase() {
+  const description = desc.value.trim(); if (!description) return;
+  const r = await api('/cases', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({description, property_name: prop.value.trim() || null})});
+  desc.value = ''; prop.value = ''; sel = r.case_id; view = 'case'; sub = 'timeline'; tl = null; tlSig = ''; embKey = ''; location.hash = 'case=' + sel; refresh();
+}
+async function decide(hil_id, decision, extra = {}) {
+  try { await api(`/cases/${sel}/hil`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hil_id, decision, ...extra})}); }
+  catch (e) { alert(e.message); }
+  refresh();
+}
+function hilPlan(id) { const ids = [...document.querySelectorAll('.planagent:checked')].map(x => x.value); decide(id, 'continue_with_agents', {agent_ids: ids}); }
+function hilVal(id, d) { decide(id, d, {comment: (document.getElementById('note')||{}).value || null}); }
+function hilFinal(id, d) {
+  let comment = null;
+  if (d === 'CHANGES_REQUESTED') { comment = prompt('What should change?'); if (comment === null) return; }
+  decide(id, d, {comment});
+}
+async function openFile(p) { fileOpen = p; fileText = (await api(`/cases/${sel}/files/${p}`)).content; render(); }
+
+function flowNodes(cs) {
+  const st = cs.stage, planned = cs.plan ? cs.plan.agent_ids : [], p = cs.pending_hil;
+  const order = ['RECEIVED','PLANNING','EXECUTING','VALIDATING','REPORTING'];
+  const idx = order.indexOf(st), end = ['COMPLETED','FAILED','ABORTED'].includes(st);
+  const cls = (i, extra) => end ? (st === 'COMPLETED' || i < (extra ?? 9) ? 'done' : '') : (idx === i ? 'active' : (idx > i ? 'done' : ''));
+  const waiting = st === 'WAITING_FOR_HUMAN';
+  const hilStage = p ? p.stage : null;
+  const agentChips = planned.map(a => { const t = [...cs.tasks].reverse().find(x => x.agent_id === a); const v = [...cs.verdicts].reverse().find(x => x.agent_id === a);
+    return `<span class="chip">${a.replace('_agent','')}: ${t ? t.status : 'PENDING'}${v ? ' · ' + v.status : ''}</span>`; }).join('');
+  const nodes = [
+    ['Intake', 'guardrails', cs.guardrail_events.length ? 'done' : '', ''],
+    ['Planner agent', 'understanding + plan', waiting && (hilStage==='plan'||hilStage==='input') ? 'hil' : cls(1), ''],
+    ['Worker agents', 'sequential', waiting && hilStage==='agent' ? 'hil' : cls(2), `<div class="sub">${agentChips || '<span class="chip">no plan yet</span>'}</div>`],
+    ['Validation', 'per-agent checks', waiting && hilStage==='validation' ? 'hil' : cls(3), ''],
+    ['Response', 'response + draft', cls(4), ''],
+    ['Human approval', 'final', waiting && hilStage==='report' ? 'hil' : '', ''],
+    ['Finalize', '', st==='COMPLETED' ? 'done' : (st==='FAILED'||st==='ABORTED' ? 'fail' : ''), ''],
+  ];
+  return `<div class="flow">${nodes.map((n, i) => `<div class="node ${n[2]}">${n[0]}<small>${n[1]}</small>${n[3]}</div>${i < nodes.length-1 ? '<div class="arrow"></div>' : ''}`).join('')}</div>`;
+}
+
+function hilPanel(cs) {
+  const p = cs.pending_hil; if (!p) return '';
+  const id = p.hil_id, busy = p.resuming ? 'disabled' : '';
+  let body = '';
+  if (p.stage === 'input') body = `<button ${busy} onclick="decide('${id}','continue')">Continue anyway</button><button class="danger" ${busy} onclick="decide('${id}','abort')">Abort case</button>`;
+  else if (p.stage === 'plan') body = `<div>Choose agents (they run sequentially, in canonical order):</div>` + (p.context.available_agents||[]).map(a => `<div class="chk"><label><input type="checkbox" class="planagent" value="${a}"> ${a}</label></div>`).join('')
+      + `<div class="row"><button ${busy} onclick="hilPlan('${id}')">Continue with selected</button><button class="danger" ${busy} onclick="decide('${id}','abort')">Abort case</button></div>`;
+  else if (p.stage === 'agent') body = `<button ${busy} onclick="decide('${id}','retry')">Retry ${esc(p.agent_id)}</button><button class="sec" ${busy} onclick="decide('${id}','continue')">Continue without it</button><button class="danger" ${busy} onclick="decide('${id}','abort')">Abort case</button>`;
+  else if (p.stage === 'validation') body = `<input type="text" id="note" placeholder="Note (recorded in the report if you continue)">`
+      + `<div class="row">${(p.failing_agents||[]).map(a => `<button ${busy} onclick="hilVal('${id}','retry:${a}')">Retry ${a}</button>`).join('')}<button class="sec" ${busy} onclick="hilVal('${id}','continue_with_note')">Continue with note</button><button class="danger" ${busy} onclick="hilVal('${id}','abort')">Abort case</button></div>`;
+  else body = `<div class="draft panel">${esc(cs.response_draft || '')}</div><div class="row"><button ${busy} onclick="hilFinal('${id}','APPROVED')">Approve</button>${p.options.includes('CHANGES_REQUESTED') ? `<button class="sec" ${busy} onclick="hilFinal('${id}','CHANGES_REQUESTED')">Request changes</button>` : ''}<button class="danger" ${busy} onclick="hilFinal('${id}','REJECTED')">Reject</button></div>`;
+  return `<div class="panel hilbox"><h2>Human in the loop: ${p.type.replace('_',' ')} (${stageName(p.stage)})</h2><div>${esc(p.reason)}</div><div style="margin-top:8px">${body}</div></div>`;
+}
+
+function agentsPanel(cs) {
+  return (cs.plan ? cs.plan.agent_ids : []).map(a => {
+    const tasks = cs.tasks.filter(t => t.agent_id === a), t = tasks[tasks.length-1];
+    const v = [...cs.verdicts].reverse().find(x => x.agent_id === a);
+    const ev = (t && t.result ? t.result.evidence : []).map(e => `<div class="ev">${esc(e.claim)}<div class="src">via ${esc(e.source.tool)} · call ${e.source.call_id} · confidence ${e.confidence}</div></div>`).join('');
+    const checks = v ? v.checks.map(c => `<div class="chk ${c.passed ? 'ok' : 'no'}">${c.passed ? '✓' : '✗'} ${c.name}: ${esc(c.detail)}</div>`).join('') + (v.judge ? `<div class="chk">Judge (${esc(v.judge.model)}): <b>${v.judge.verdict}</b> — ${esc(v.judge.rationale)}</div>` : '') + (v.judge_unavailable ? '<div class="chk">Judge unavailable: deterministic checks only</div>' : '') : '<div class="mut">Not validated yet.</div>';
+    return `<div class="panel"><h2>${a} ${t ? badge(t.status) : ''} ${v ? badge(v.status) : ''} <span class="mut">attempt ${tasks.length}</span></h2>
+      ${t && t.result && t.result.reason ? `<div class="chk no">${esc(t.result.reason)}</div>` : ''}${ev || '<div class="mut">No evidence.</div>'}<h3>Validation</h3>${checks}</div>`;
+  }).join('') || '<div class="mut">No plan yet.</div>';
+}
+
+function render() {
+  const el = document.getElementById('detail');
+  if (view !== 'case') return;
+  const cs = cases.find(c => c.case.case_id === sel);
+  if (!cs) { el.innerHTML = '<span class="mut">Select a case, or submit a new one.</span>'; return; }
+  if (sub === 'timeline') return renderTimeline(cs);
+  if (sub !== 'case') return renderEmbedded(cs);
+  embKey = '';
+  const u = cs.understanding, p = cs.plan;
+  const ge = cs.guardrail_events.map(e => `<div class="chk ${e.passed ? 'ok' : 'no'}">${e.passed ? '✓' : '✗'} ${e.point}/${e.rule}: ${esc(e.detail)}</div>`).join('');
+  const hd = cs.hil_decisions.map(d => `<div class="chk">${d.hil_id} (${d.stage}): <b>${esc(d.decision)}</b>${d.comment ? ' — ' + esc(d.comment) : ''} <span class="mut">waited ${Math.round(d.waited_ms/1000)} s</span></div>`).join('');
+  el.innerHTML = `
+    <h2>${cs.case.case_id} ${badge(cs.stage)} ${switcher(cs)}</h2>
+    <div>${esc(cs.case.description)}</div>
+    ${cs.flow_selection ? `<div class="mut" style="margin-top:4px">Flow: <b>${esc(cs.flow_selection.flow_id || 'not selected')}</b> (${esc((cs.flow_selection.source || '').replace(/_/g, ' '))}): ${esc(cs.flow_selection.reason)}</div>` : ''}
+    ${u ? `<div class="mut" style="margin-top:4px">Understanding: ${esc(u.case_type_hint || '?')} · ${u.time_horizon} · property ${esc(u.property_name || '?')}</div>` : ''}
+    ${p ? `<div class="mut">Plan (${p.source}): flow <b>${p.case_type}</b> → ${p.agent_ids.join(' → ')}. ${esc(p.reasoning)}</div>` : ''}
+    ${cs.final_reason ? `<div class="mut">Outcome: ${esc(cs.final_reason)}</div>` : ''}
+    ${flowNodes(cs)}
+    ${hilPanel(cs)}
+    <div class="grid"><div>${agentsPanel(cs)}</div><div>
+      <div class="panel"><h2>Guardrail events</h2>${ge || '<span class="mut">none</span>'}</div>
+      <div class="panel"><h2>Human decisions</h2>${hd || '<span class="mut">none</span>'}</div>
+      ${cs.caveats.length ? `<div class="panel"><h2>Caveats</h2>${cs.caveats.map(c => `<div class="chk">• ${esc(c)}</div>`).join('')}</div>` : ''}
+      ${cs.response_draft && !cs.pending_hil ? `<div class="panel"><h2>Response draft</h2><div class="draft">${esc(cs.response_draft)}</div></div>` : ''}
+      <div class="panel"><h2>LLM usage</h2><span class="mut">${cs.llm_usage.calls} calls · ${cs.llm_usage.prompt_tokens} prompt / ${cs.llm_usage.completion_tokens} completion tokens · harness v${cs.harness_version} (${cs.harness_hash.slice(0,12)})</span></div>
+      <div class="panel"><h2>Run files (agent logs, validation logs, report)</h2><div class="files" id="files"></div>${fileOpen ? `<pre>${esc(fileText)}</pre>` : ''}</div>
+    </div></div>`;
+  loadFiles(cs.case.case_id);
+}
+function switcher(cs) {
+  const b = (id, label) => `<button class="${sub === id ? '' : 'sec'}" onclick="setSub('${id}')">${label}</button>`;
+  return `<span class="seg">${b('timeline', 'Timeline')}${b('case', 'Case')}${b('trajectory', 'Trajectory')}${b('trace', 'Trace')}</span>
+    <a class="btn sec" style="margin-left:8px" href="${dash}/#trace=${cs.trace_id}&tab=${sub === 'trajectory' ? 'trajectory' : 'traces'}" target="_blank" title="Open in the dashboard, new tab">↗</a>`;
+}
+function setSub(s) { sub = s; embKey = ''; lastSig = ''; tlSig = ''; render(); if (s === 'timeline') loadTimeline(); }
+function pick(id) { sel = id; view = 'case'; fileOpen = null; embKey = ''; lastSig = ''; tl = null; tlSig = ''; location.hash = 'case=' + id; render(); renderList(); loadTimeline(); }
+function renderEmbedded(cs) {
+  const key = cs.case.case_id + '|' + sub;
+  if (embKey === key && document.getElementById('emb')) return;  // the iframe polls by itself; never reload it on a state tick
+  embKey = key;
+  const tab = sub === 'trajectory' ? 'trajectory' : 'traces';
+  detail.innerHTML = `<h2>${cs.case.case_id} ${badge(cs.stage)} ${switcher(cs)}</h2>
+    <div class="mut">${sub === 'trajectory' ? 'Agent trajectory: the path this case took, tool calls per agent, validation and human steps.' : 'Full orchestration trace: every stage, agent, tool call, LLM call and human wait.'} Live from the observability dashboard (separate process). If this stays blank, start it with scripts\\start.ps1.</div>
+    <iframe id="emb" src="${dash}/?embed=1#trace=${cs.trace_id}&tab=${tab}" style="width:100%;height:calc(100vh - 200px);border:1px solid var(--line);border-radius:9px;background:var(--panel);margin-top:8px"></iframe>`;
+}
+function showDashboard() {
+  view = 'dashboard'; sel = null; embKey = ''; location.hash = ''; renderList();
+  detail.innerHTML = `<h2>Observability dashboard <a class="btn sec" style="margin-left:8px" href="${dash}/" target="_blank">Open in new tab ↗</a></h2>
+    <div class="mut">Metrics across all cases. Pick a case in the Trajectory tab, or open one from the case list to see it in context.</div>
+    <iframe src="${dash}/?embed=1#tab=metrics" style="width:100%;height:calc(100vh - 170px);border:1px solid var(--line);border-radius:9px;background:var(--panel);margin-top:8px"></iframe>`;
+}
+function fromHash() {
+  if (/^#flows/.test(location.hash)) { if (view !== 'flows') showFlows(); return; }  // deep link to the Flow Registry page
+  const m = location.hash.match(/case=([A-Za-z0-9-]+)/);
+  if (m && m[1] !== sel) { sel = m[1]; view = 'case'; embKey = ''; lastSig = ''; tl = null; tlSig = ''; fileOpen = null; render(); renderList(); loadTimeline(); }
+}
+async function loadFiles(id) {
+  try { const f = await api(`/cases/${id}/files`); const el = document.getElementById('files'); if (el) el.innerHTML = f.map(p => `<a onclick="openFile('${p}')">${p}</a>`).join('') || '<span class="mut">none yet</span>'; } catch (e) {}
+}
+function renderList() {
+  list.innerHTML = cases.map(cs => `<div class="case ${cs.case.case_id === sel ? 'sel' : ''}" onclick="pick('${cs.case.case_id}')">
+    <div class="id">${cs.case.case_id} ${badge(cs.stage)} ${cs.flow_selection && cs.flow_selection.flow_id ? `<span class="chip flowchip">${esc(cs.flow_selection.flow_id)}</span>` : ''}</div><div class="d">${esc(cs.case.description).slice(0, 90)}</div></div>`).join('') || '<div class="mut">No cases yet.</div>';
+}
+async function showHarness() {
+  view = 'harness'; sel = null; embKey = ''; location.hash = ''; renderList();
+  const [h, a] = await Promise.all([api('/harness'), api('/agents')]);
+  detail.innerHTML = `<h2>Harness v${h.version} ${badge(h.intact ? 'PASS' : 'FAIL')} <span class="mut">${h.intact ? 'intact' : 'TAMPERED'} · sha256 ${h.hash.slice(0,16)}…</span></h2>
+    <div class="mut">Definitions under harness/ are hash-locked and read-only to every agent. Mutable data lives in runtime/.</div>
+    <div class="grid" style="margin-top:12px">${a.map(x => `<div class="panel"><h2>${x.display_name} <span class="mut">v${x.version}</span></h2><div>${esc(x.purpose)}</div>
+      <div class="mut">tools: ${x.tools_allowed.join(', ')}</div><div class="mut">contract: ${esc(JSON.stringify(x.expected_evidence))}</div>
+      <h3>MEMORY.md (writable by this agent only)</h3><pre>${esc(x.memory || '(empty)')}</pre></div>`).join('')}</div>
+    <h3>Flows</h3><pre>${esc(JSON.stringify(h.flows, null, 2))}</pre><h3>Step policy</h3><pre>${esc(JSON.stringify(h.step_policy, null, 2))}</pre>`;
+}
+function renderTimeline(cs) {
+  embKey = '';
+  const head = `<h2>${cs.case.case_id} ${badge(cs.stage)} ${switcher(cs)}</h2><div>${esc(cs.case.description)}</div>`;
+  if (!tl || tl.case_id !== cs.case.case_id) { detail.innerHTML = head + '<div class="mut" style="margin-top:10px">Loading the execution timeline…</div>'; return; }
+  detail.innerHTML = head + hilPanel(cs) + timelineHtml(tl, openKeys);
+}
+async function loadTimeline() {  // the timeline comes from the runtime's own case state (GET /cases/{id}/timeline); polled while a case is live
+  if (view !== 'case' || sub !== 'timeline' || !sel) return;
+  const id = sel;
+  try {
+    const t = await api(`/cases/${id}/timeline`); if (id !== sel || sub !== 'timeline') return;
+    const sig = timelineSig(t, cases.find(c => c.case.case_id === id));
+    const same = tl && tl.case_id === id && sig === tlSig; tl = t; tlSig = sig; if (!same) render();
+  } catch (e) { /* case not created yet, or a transient error: the next poll retries */ }
+}
+async function showFlows() {
+  view = 'flows'; sel = null; embKey = ''; location.hash = 'flows'; renderList();
+  try { flowsCache = await api('/flows'); } catch (e) { detail.innerHTML = '<span class="mut">Could not load the flow registry.</span>'; return; }
+  renderFlows();
+}
+function renderFlows() {
+  detail.innerHTML = `<h2>Flow Registry <span class="mut">harness/flows/flows.json · ${flowsCache.length} flows</span></h2>
+    <div class="mut">Each case is matched to one of these flows by the runtime (intent, then keyword evidence). The planner plans inside the selected flow.</div>${flowsHtml(flowsCache, cases)}`;
+}
+document.addEventListener('toggle', e => { const k = e.target && e.target.dataset && e.target.dataset.k; if (k) { if (e.target.open) openKeys.add(k); else openKeys.delete(k); } }, true);
+
+async function refresh() {
+  try { cases = await api('/cases'); } catch (e) { return; }
+  renderList();
+  if (view === 'flows' && flowsCache) renderFlows();
+  if (view === 'case' && sub === 'timeline') await loadTimeline();
+  else if (view === 'case') {  // re-render only on change so checkboxes / notes / open files are not wiped by polling
+    const sig = JSON.stringify(cases.find(c => c.case.case_id === sel) || null);
+    if (sig !== lastSig) { lastSig = sig; render(); }
+  }
+}
+(async () => {
+  try { const c = await api('/config'); dash = c.dashboard_url; const h = await api('/health'); harness.textContent = `harness v${h.harness_version} · ${h.harness_hash.slice(0,10)} · ${h.agents_in_process.length} agents in one process`; } catch (e) {}
+  dashLink.href = dash; fromHash(); refresh(); setInterval(refresh, 1500);
+  addEventListener('hashchange', fromHash);
+})();
+</script>
+</body>
+</html>

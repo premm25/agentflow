@@ -1,0 +1,69 @@
+{
+  "registry_version": "1.1.0",
+  "canonical_agent_order": ["pricing_agent", "overbooking_agent", "lrv_agent", "forecast_agent"],
+  "flows": {
+    "pricing": {
+      "name": "Pricing flow",
+      "version": "1.0.0",
+      "enabled": true,
+      "intents": ["pricing"],
+      "description": "Rate / BAR / rate-shopping concerns. Forecast may accompany pricing when the case is long-horizon.",
+      "allowed_agents": ["pricing_agent", "forecast_agent"],
+      "default_agents": ["pricing_agent"],
+      "max_agents": 2
+    },
+    "overbooking": {
+      "name": "Overbooking flow",
+      "version": "1.0.0",
+      "enabled": true,
+      "intents": ["overbooking"],
+      "description": "Overbooking notifications and booking/inventory discrepancies.",
+      "allowed_agents": ["overbooking_agent"],
+      "default_agents": ["overbooking_agent"],
+      "max_agents": 1
+    },
+    "lrv": {
+      "name": "Last Room Value flow",
+      "version": "1.0.0",
+      "enabled": true,
+      "intents": ["lrv"],
+      "description": "Last Room Value and inventory-control questions.",
+      "allowed_agents": ["lrv_agent", "forecast_agent"],
+      "default_agents": ["lrv_agent"],
+      "max_agents": 2
+    },
+    "forecast": {
+      "name": "Forecast flow",
+      "version": "1.0.0",
+      "enabled": true,
+      "intents": ["forecast"],
+      "description": "Occupancy / revenue forecast questions.",
+      "allowed_agents": ["forecast_agent"],
+      "default_agents": ["forecast_agent"],
+      "max_agents": 1
+    },
+    "multi": {
+      "name": "Multi-topic flow",
+      "version": "1.0.0",
+      "enabled": true,
+      "intents": [],
+      "multi_topic": true,
+      "description": "Case text clearly raises more than one topic.",
+      "allowed_agents": ["pricing_agent", "overbooking_agent", "lrv_agent", "forecast_agent"],
+      "default_agents": [],
+      "max_agents": 4
+    }
+  },
+  "step_policy": {
+    "on_agent_failure": "human_in_the_loop",
+    "on_validation_failure": "human_in_the_loop",
+    "on_plan_failure": "human_in_the_loop",
+    "human_options": {
+      "agent_failure": ["retry", "continue", "abort"],
+      "validation_failure": ["retry:<agent_id>", "continue_with_note", "abort"],
+      "plan_failure": ["continue_with_agents:<agent_ids>", "abort"],
+      "final_approval": ["APPROVED", "CHANGES_REQUESTED", "REJECTED"]
+    },
+    "max_report_revisions": 2
+  }
+}

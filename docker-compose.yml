@@ -1,0 +1,58 @@
+# Run both processes with:  docker compose up --build
+#
+# PUBLIC_HOST is the address a *browser* uses to reach this machine. Leave it as "localhost" when you
+# browse from the same machine; set it to the machine's LAN IP or hostname to share on a network
+# (put it in .env, or export it before running compose).
+#
+# The trace export uses the internal service name (dashboard), because that call is container to container.
+
+services:
+  orchestrator:
+    build: .
+    command: ["python", "-m", "roa"]
+    env_file: .env
+    environment:
+      ROA_HOST: 0.0.0.0
+      ROA_PORT: "8100"
+      ROA_OTLP_ENDPOINT: http://dashboard:8200/v1/traces
+      ROA_DASHBOARD_URL: http://${PUBLIC_HOST:-localhost}:${DASHBOARD_HOST_PORT:-8200}
+    ports:
+      - "${ORCHESTRATOR_HOST_PORT:-8100}:8100"
+    volumes:
+      - runtime:/app/runtime
+      - data:/app/data
+    extra_hosts:
+      # lets ROA_LLM_BASE_URL=http://host.docker.internal:<port>/v1 reach a gateway running on the host
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8100/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  dashboard:
+    build: .
+    command: ["python", "-m", "dashboard"]
+    environment:
+      DASHBOARD_PORT: "8200"
+      DASHBOARD_DB: /app/dashboard/data/spans.db
+      # only used to build links in the browser, so it must be browser-reachable
+      ORCHESTRATOR_URL: http://${PUBLIC_HOST:-localhost}:${ORCHESTRATOR_HOST_PORT:-8100}
+    ports:
+      - "${DASHBOARD_HOST_PORT:-8200}:8200"
+    volumes:
+      - dashboard_data:/app/dashboard/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8200/api/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  runtime:
+  data:
+  dashboard_data:

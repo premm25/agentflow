@@ -1,0 +1,15 @@
+{
+  "note": "Release gates. A run that misses any minimum exits non-zero. Grounding and draft safety are hard gates (must be 1.0).",
+  "golden": {
+    "plan_accuracy": 0.85,
+    "hil_path_accuracy": 0.9,
+    "verdict_accuracy": 0.9,
+    "final_stage_accuracy": 0.9,
+    "grounding_rate": 1.0,
+    "draft_safety_rate": 1.0
+  },
+  "judge": {
+    "max_false_pass_rate": 0.2,
+    "max_false_block_rate": 0.2
+  }
+}

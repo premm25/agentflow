@@ -1,0 +1,21 @@
+{
+  "fallback_version": "1.0.0",
+  "understanding_failure": {
+    "action": "minimal_understanding",
+    "note": "Use the raw case text as the summary, horizon UNKNOWN; continue to planning."
+  },
+  "planner_failure": {
+    "chain": ["keyword_match", "human_in_the_loop"],
+    "note": "If the planner output is invalid or violates the plan guardrails, try deterministic keyword matching from the agent specs; if that finds nothing, pause for a human. Never guess."
+  },
+  "llm_unavailable": { "action": "human_in_the_loop" },
+  "validation_judge_failure": {
+    "action": "deterministic_only",
+    "note": "Deterministic checks still decide PASS/FAIL; the verdict is flagged judge_unavailable."
+  },
+  "report_draft_failure": {
+    "action": "template_draft",
+    "note": "Assemble the client draft from verified evidence claims without an LLM."
+  },
+  "agent_failure": { "action": "human_in_the_loop" }
+}

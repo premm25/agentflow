@@ -1,0 +1,17 @@
+# Generated from pyproject.toml [project].dependencies
+fastapi==0.118.0
+uvicorn==0.52.1
+httpx==0.28.1
+pydantic==2.13.4
+pydantic-settings==2.8.0
+sqlalchemy==1.4.49
+langgraph==1.2.10
+langgraph-checkpoint-sqlite==3.1.1
+aiosqlite==0.22.1
+jsonschema>=4.0
+opentelemetry-api>=1.30
+opentelemetry-sdk>=1.30
+opentelemetry-exporter-otlp-proto-http>=1.30
+opentelemetry-proto>=1.30
+pytest>=8.0
+python-multipart==0.0.32

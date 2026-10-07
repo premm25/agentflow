@@ -1,0 +1,37 @@
+{
+  "guardrails_version": "1.0.0",
+  "input": {
+    "min_chars": 10,
+    "max_chars": 4000,
+    "injection_patterns": [
+      "ignore (all |any |the )?(previous|prior|above) (instructions|prompts?)",
+      "disregard (all |any |the )?(previous|prior|above)",
+      "you are now",
+      "system prompt",
+      "reveal (your|the) (prompt|instructions)",
+      "developer mode"
+    ]
+  },
+  "plan": {
+    "require_registered_agents": true,
+    "require_enabled_agents": true,
+    "forbid_duplicates": true,
+    "must_fit_flow": true,
+    "require_topic_support": true,
+    "topic_support_note": "Every agent in an LLM-made plan must be backed by the case text (one of the agent's declared `handles` appears) or by the Understanding Agent's independent case_type_hint. A model that guesses a topic is blocked here and falls back to keywords, then to a human."
+  },
+  "agent": {
+    "max_tool_calls_per_agent": 10,
+    "agent_timeout_s": 60,
+    "tools_must_be_in_agent_spec": true
+  },
+  "output": {
+    "require_evidence_for_numbers": true,
+    "forbidden_actions": ["crm_post", "crm_close_case", "send_email"],
+    "forbidden_patterns": ["[a-z]+_agent\\b", "\\[[^\\]]{2,40}\\]", "\\bvalidation\\b", "\\bharness\\b", "\\btool call"],
+    "forbidden_phrases": ["guaranteed", "we will refund", "100% certain"]
+  },
+  "budgets": {
+    "max_llm_calls_per_case": 30
+  }
+}

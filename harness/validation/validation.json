@@ -1,0 +1,23 @@
+{
+  "validation_version": "1.0.0",
+  "deterministic_checks": [
+    "status_done",
+    "required_tools_called",
+    "min_evidence",
+    "evidence_provenance",
+    "numbers_grounded",
+    "confidence_floor",
+    "allowed_tools_only"
+  ],
+  "severity": {
+    "status_done": "fail",
+    "required_tools_called": "fail",
+    "min_evidence": "fail",
+    "evidence_provenance": "fail",
+    "numbers_grounded": "fail",
+    "confidence_floor": "fail",
+    "allowed_tools_only": "fail",
+    "judge": "warn"
+  },
+  "judge": { "enabled": true, "fail_blocks": true }
+}

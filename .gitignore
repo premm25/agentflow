@@ -1,0 +1,50 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.db
+*.sqlite
+*.sqlite3
+.env
+.env.*
+!.env.example
+chroma_data/
+*.log
+.pytest_cache/
+runtime/
+data/
+dashboard/data/
+_legacy/
+evals/results/*.json
+
+# --- added for the public repository ---
+# SQLite sidecar files
+*.sqlite-shm
+*.sqlite-wal
+*.db-shm
+*.db-wal
+# secrets and keys
+*.pem
+*.key
+# editors, OS and tool folders
+.vscode/
+.idea/
+.claude/
+.DS_Store
+Thumbs.db
+# build, test and tooling output
+*.egg-info/
+dist/
+build/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+# local leftovers and logs
+*.bak
+*.orig
+*.rej
+*.err
+# external-service artifacts and local case folders: never published (runtime/, data/ and dashboard/data/ are covered above)
+external_review*/
+review_cases/

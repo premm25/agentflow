@@ -1,0 +1,15 @@
+{
+  "registry_version": "1.0.0",
+  "note": "Every tool an agent may use. Agents cannot call a tool that is not listed here AND in their own AGENT.md tools_allowed. Implementations live in roa/tools; the loader cross-checks both directions.",
+  "tools": {
+    "read_pricing_snapshot": { "description": "Current published rate for the property and stay date.", "args": {}, "side_effects": false },
+    "read_occupancy": { "description": "Occupancy percentage for the period in question.", "args": {}, "side_effects": false },
+    "read_competitor_rates": { "description": "Observed competitor rate range.", "args": {}, "side_effects": false },
+    "read_rate_configuration": { "description": "Rate configuration (offsets, floor/ceiling) and whether it changed.", "args": {}, "side_effects": false },
+    "read_booking_status": { "description": "Reservation confirmation status.", "args": {}, "side_effects": false },
+    "read_inventory": { "description": "Rooms remaining at the time of booking.", "args": {}, "side_effects": false },
+    "read_lrv": { "description": "Current Last Room Value.", "args": {}, "side_effects": false },
+    "read_lrv_update_log": { "description": "Days since the LRV was last updated by the optimizer.", "args": {}, "side_effects": false },
+    "read_occupancy_forecast": { "description": "Occupancy forecast and the same period last year.", "args": {}, "side_effects": false }
+  }
+}
